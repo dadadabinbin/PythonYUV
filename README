@@ -1,0 +1,16 @@
+### old getMB, shouldn't use
+def getMB(MBLine,stride,offset, numofline, numofcolumn):
+### print 16x16MbData
+def printMB(MbData):
+### print diff of 2 MB
+def printDiff(MbData1,MbData2):
+### read one frame into memory
+def readOneFrame(Params, FrameNum, FileNum):
+### read one MB from Frame
+def getOneMBFromFrame(Params, MbX, MbY, FrameData):
+### print All MBs of a specified file
+def printAllMBs(Params,WhichFile):
+### find first diff
+def findFirstDiff(Params):
+### parse cfg file
+def parseCfgFile():

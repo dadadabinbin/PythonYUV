@@ -1,0 +1,162 @@
+#!/usr/bin/python
+# vim:fdm=marker
+import os
+import sys
+import struct
+
+
+def getMB(MBLine,stride,offset, numofline, numofcolumn):#{{{1
+  curMB = []
+  for i in range(0,numofline):
+    curMB.append(MBLine[i*stride + offset :i*stride + offset + numofcolumn])
+  return curMB
+
+def printMB(MbData):#{{{1
+  MB                = MbData["MbData"]
+  iNumOfLinesInMB   = MbData["NumOfLinesInMB"]
+  iNumOfColumnsInMB = MbData["NumOfColumnsInMB"]
+
+  for i in range(0,iNumOfLinesInMB):
+    if not i%4:
+      print"---------------------------------------------------------------------------------------------------------"
+    for j in range(0,iNumOfColumnsInMB):
+      if not j%4:
+        print "|",
+      int1, = struct.unpack("B",MB[i][j])
+      print "%-5d"% int1,
+    print "|\n"
+
+  print"---------------------------------------------------------------------------------------------------------"
+
+
+def printDiff(MbData1,MbData2):#{{{1
+  MB1               = MbData1["MbData"]
+  MB2               = MbData2["MbData"]
+  iNumOfLinesInMB   = MbData1["NumOfLinesInMB"]
+  iNumOfColumnsInMB = MbData1["NumOfColumnsInMB"]
+  for i in range(0,iNumOfLinesInMB):
+    if not i%4:
+      print"---------------------------------------------------------------------------------------------------------"
+    for j in range(0,iNumOfColumnsInMB):
+      if not j%4:
+        print "|",
+      int1, = struct.unpack("B",MB1[i][j])
+      int2, = struct.unpack("B",MB2[i][j])
+      diff = int1 - int2
+      print "%-5d"% diff,
+    print "|\n"
+
+  print"---------------------------------------------------------------------------------------------------------"
+
+
+def readOneFrame(Params, FrameNum, FileNum):#{{{1
+
+  BlockSize_Y = Params["frame_height"] * Params["frame_width"]
+  BlockSize_UV = Params["frame_height"] * Params["frame_width"] / 2
+  BlockSize_Total = BlockSize_Y + BlockSize_UV
+
+  if FileNum == 1:
+    YUVFile = open(Params["filename1"],"r")
+  else:
+    YUVFile = open(Params["filename2"],"r")
+  YUVFile.seek( BlockSize_Total * FrameNum, os.SEEK_SET)
+  FrameDataY = YUVFile.read( Params["frame_height"] * Params["frame_width"] )
+  return FrameDataY
+
+def getOneMBFromFrame(Params, MbX, MbY, FrameData):#{{{1
+  TopLeftX = MbX * 16
+  TopLeftY = MbY * 16
+
+  stride = Params["frame_width"]
+
+  if MbX >= Params["width_in_mb"] or MbY >= Params["height_in_mb"]:
+    return "fail"
+
+  if TopLeftY+16 >= Params["frame_height"]:
+    iNumOfLinesInMB = Params["frame_height"] - TopLeftY
+  else:
+    iNumOfLinesInMB = 16 
+
+  if TopLeftX+16 >= Params["frame_width"]:
+    iNumOfColumnsInMB = Params["frame_width"] - TopLeftX
+  else:
+    iNumOfColumnsInMB = 16 
+
+  curMB = []
+  for i in range(0,iNumOfLinesInMB):
+    curMB.append(FrameData[ ( TopLeftY + i ) * stride + TopLeftX :( TopLeftY + i )*stride + TopLeftX + iNumOfColumnsInMB])
+  
+  MbData = {}
+  MbData["MbData"] = curMB
+  MbData["NumOfLinesInMB"] = iNumOfLinesInMB
+  MbData["NumOfColumnsInMB"] = iNumOfColumnsInMB
+  return MbData
+
+
+def printAllMBs(Params,WhichFile):#{{{1
+  for frame_n in range(0,Params["num_of_frames"]):
+    FrameData = readOneFrame(Params, frame_n, WhichFile)
+    for mb_y in range(0,Params["height_in_mb"]): 
+      for mb_x in range(0, Params["width_in_mb"]):
+        MbData = getOneMBFromFrame(Params, mb_x, mb_y, FrameData)
+        print "FrameNum: %d"%frame_n
+        print "MB: (%d,%d)"%(mb_x,mb_y)
+        printMB(MbData)
+
+
+def findFirstDiff(Params):#{{{1
+  for frame_n in range(0,Params["num_of_frames"]):
+    FrameData1 = readOneFrame(Params, frame_n, 1)
+    FrameData2 = readOneFrame(Params, frame_n, 2)
+    for mb_y in range(0,Params["height_in_mb"]): 
+      for mb_x in range(0, Params["width_in_mb"]):
+        MbData1 = getOneMBFromFrame(Params, mb_x, mb_y, FrameData1)
+        MbData2 = getOneMBFromFrame(Params, mb_x, mb_y, FrameData2)
+
+        if not MbData1["MbData"] == MbData2["MbData"]:
+          print "FrameNum: %d"%frame_n
+          print "MB: (%d,%d)"%(mb_x,mb_y)
+          printDiff(MbData1,MbData2)
+          return
+def parseCfgFile():#{{{1
+  Params={}
+
+  cfgFile = open("compare.cfg","r")
+  cfgLine = cfgFile.readline()
+  (file1, file2, width, height, numFrame, firstDiff) = cfgLine.split()
+
+  Params["filename1"] = file1
+  Params["filename2"] = file2
+  Params["frame_width"] = int(width)
+  Params["frame_height"] = int(height)
+  Params["num_of_frames"] = int(numFrame)
+  Params["first_diff_only"] = int(firstDiff)
+
+  width=int(width)
+  height=int(height)
+  numFrame = int(numFrame)
+  firstDiff = int(firstDiff)
+
+  width_in_mb = width/16
+  if width%16:
+    width_in_mb = width_in_mb + 1
+
+  height_in_mb = height/16
+  if height%16:
+    height_in_mb = height_in_mb + 1
+
+  Params["width_in_mb"] = width_in_mb
+  Params["height_in_mb"] = height_in_mb
+  return Params
+
+
+
+#Global {{{1
+
+
+Params = parseCfgFile()
+#FrameData = readOneFrame(Params, 0, 2)
+#MbData = getOneMBFromFrame(Params, 0, 0, FrameData)
+#printMB(MbData)
+#printAllMBs(Params,2)
+findFirstDiff(Params)
