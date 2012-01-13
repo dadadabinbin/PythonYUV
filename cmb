@@ -103,6 +103,10 @@ def printAllMBs(Params,WhichFile):#{{{1
         print "MB: (%d,%d)"%(mb_x,mb_y)
         printMB(MbData)
 
+def printOneMBOfASeq(Params, WhichFile, FrameNum, MbX, MbY): #{{{1
+  FrameData = readOneFrame(Params, FrameNum, WhichFile)
+  MbData = getOneMBFromFrame(Params, MbX, MbY, FrameData)
+  printMB(MbData)
 
 def findFirstDiff(Params):#{{{1
   for frame_n in range(0,Params["num_of_frames"]):
@@ -118,6 +122,23 @@ def findFirstDiff(Params):#{{{1
           print "MB: (%d,%d)"%(mb_x,mb_y)
           printDiff(MbData1,MbData2)
           return
+  print "Con!!! All MBs are the same"
+
+def findFrameDiff(Params, FrameNum):#{{{1
+  FrameData1 = readOneFrame(Params, FrameNum, 1)
+  FrameData2 = readOneFrame(Params, FrameNum, 2)
+  for mb_y in range(0,Params["height_in_mb"]):
+    for mb_x in range(0, Params["width_in_mb"]):
+      MbData1 = getOneMBFromFrame(Params, mb_x, mb_y, FrameData1)
+      MbData2 = getOneMBFromFrame(Params, mb_x, mb_y, FrameData2)
+
+      if not MbData1["MbData"] == MbData2["MbData"]:
+        print "FrameNum: %d"%FrameNum
+        print "MB: (%d,%d)"%(mb_x,mb_y)
+        printDiff(MbData1,MbData2)
+        return
+  print "Con! No difference found"
+
 def parseCfgFile():#{{{1
   Params={}
 
@@ -149,14 +170,59 @@ def parseCfgFile():#{{{1
   Params["height_in_mb"] = height_in_mb
   return Params
 
+def cmdExeFirstDiff(Params,ArgStrings):#{{{1
+  findFirstDiff(Params)
 
+def cmdExeFrameDiff(Params, ArgStrings):#{{{1
+  FrameNum = int(ArgStrings[0])
+  print FrameNum
+  findFrameDiff(Params, FrameNum)
+
+
+def cmdExeHelp():#{{{1
+  print "Sorry, no help :-P"
+
+def cmdExeQuit():#{{{1
+  print "Quit!"
+  sys.exit()
+
+def cmdExeNotACommand():#{{{1
+  print "what the hell do you want to do ?"
 
 #Global {{{1
 
 
 Params = parseCfgFile()
+if len(sys.argv) > 1:
+  arg1 = sys.argv[1]
+else:
+  arg1 = "interactive"
+
+if arg1 == "no-interactive":
+  findFirstDiff(Params)
+else:
+  while 1:
+    CommandLine = raw_input('Enter command:')
+    #(cmdstring, argstring)  = CommandLine.split()
+    SplittedCmd  = CommandLine.split()
+    if len(SplittedCmd) > 0:
+      CmdString = SplittedCmd[0]
+    else:
+      CmdString = "nc"
+    ArgStrings = SplittedCmd[1:]
+
+    #print CmdString
+    Operations = {
+        "h"  : lambda: cmdExeHelp(),
+        "fd" : lambda: cmdExeFirstDiff(Params,ArgStrings),
+        "q"  : lambda: cmdExeQuit(),
+        "nd" : lambda: cmdExeFrameDiff(Params,ArgStrings),
+        "nc" : lambda: cmdExeNotACommand(),
+          }
+    Operations.get(CmdString,lambda: cmdExeNotACommand())()
+
+
 #FrameData = readOneFrame(Params, 0, 2)
 #MbData = getOneMBFromFrame(Params, 0, 0, FrameData)
 #printMB(MbData)
 #printAllMBs(Params,2)
-findFirstDiff(Params)
