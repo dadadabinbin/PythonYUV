@@ -189,40 +189,37 @@ def cmdExeQuit():#{{{1
 def cmdExeNotACommand():#{{{1
   print "what the hell do you want to do ?"
 
+def CommandExecution(Params, CmdString, ArgStrings):#{{{1
+  Operations = {
+      "h"  : lambda: cmdExeHelp(),
+      "fd" : lambda: cmdExeFirstDiff(Params,ArgStrings),
+      "q"  : lambda: cmdExeQuit(),
+      "nd" : lambda: cmdExeFrameDiff(Params,ArgStrings),
+      "nc" : lambda: cmdExeNotACommand(),
+        }
+  Operations.get(CmdString,lambda: cmdExeNotACommand())()
 #Global {{{1
 
 
 Params = parseCfgFile()
 if len(sys.argv) > 1:
-  arg1 = sys.argv[1]
-else:
-  arg1 = "interactive"
-
-if arg1 == "no-interactive":
-  findFirstDiff(Params)
+  CmdString = sys.argv[1]
+  if len(sys.argv) > 2:
+    ArgStrings = sys.argv[2:]
+  else:
+    ArgStrings = []
+  CommandExecution(Params, CmdString, ArgStrings)
 else:
   while 1:
     CommandLine = raw_input('Enter command:')
-    #(cmdstring, argstring)  = CommandLine.split()
+
     SplittedCmd  = CommandLine.split()
     if len(SplittedCmd) > 0:
       CmdString = SplittedCmd[0]
     else:
       CmdString = "nc"
-    ArgStrings = SplittedCmd[1:]
-
-    #print CmdString
-    Operations = {
-        "h"  : lambda: cmdExeHelp(),
-        "fd" : lambda: cmdExeFirstDiff(Params,ArgStrings),
-        "q"  : lambda: cmdExeQuit(),
-        "nd" : lambda: cmdExeFrameDiff(Params,ArgStrings),
-        "nc" : lambda: cmdExeNotACommand(),
-          }
-    Operations.get(CmdString,lambda: cmdExeNotACommand())()
-
-
-#FrameData = readOneFrame(Params, 0, 2)
-#MbData = getOneMBFromFrame(Params, 0, 0, FrameData)
-#printMB(MbData)
-#printAllMBs(Params,2)
+    if len(SplittedCmd) > 1:
+      ArgStrings = SplittedCmd[1:]
+    else:
+      ArgStrings = []
+    CommandExecution(Params, CmdString, ArgStrings)
