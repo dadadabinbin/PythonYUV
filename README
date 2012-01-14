@@ -1,14 +1,14 @@
 # VIM Header {{{
-#vim:fdm=marker
+# vim:fdm=marker
 #}}}
 
 ##Usage####{{{1
 
 When used as:
 
-      cmb no-interactive
+      cmb <command> [args]
 
-It simply find the first different Y MB between the 2 YUV files and print it.
+It will execute the command and quit
 
 
 When used as:
@@ -20,13 +20,15 @@ Avalable commands:
   "h"  :  There's not and help now
   "fd" :  Find the first different MB between the 2 YUV
   "q"  :  Quit the dead loop of asking for command and execute
-  "nd" :  Find the first different MB in specified frame, a FrameNum should follow the "nd" command
+  "nd <FrameNum>"
+       :  Find the first different MB in specified frame, a FrameNum should follow the "nd" command
+  "p <WhichFile> <FrameNum> <MbX> <MbY>"
+       :  print a particular MB of a particular file.
   "nc" :  Stands for "no command"
 
 
 ### Future plan {{{1
 
-extend the no-interactive mode with the ablity to print All MBs of a YUV.
 add other useful functionality to both interactive and no-interactive mode.
 
 ###Functions {{{1

@@ -182,6 +182,12 @@ def cmdExeFrameDiff(Params, ArgStrings):#{{{1
 def cmdExeHelp():#{{{1
   print "Sorry, no help :-P"
 
+def cmdExePrintAMB(Params,ArgStrings):#{{{1
+  if len(ArgStrings) >= 4:
+    printOneMBOfASeq(Params, int(ArgStrings[0]), int(ArgStrings[1]), int(ArgStrings[2]), int(ArgStrings[3]))
+  else:
+    print "Too few arguments"
+
 def cmdExeQuit():#{{{1
   print "Quit!"
   sys.exit()
@@ -195,6 +201,7 @@ def CommandExecution(Params, CmdString, ArgStrings):#{{{1
       "fd" : lambda: cmdExeFirstDiff(Params,ArgStrings),
       "q"  : lambda: cmdExeQuit(),
       "nd" : lambda: cmdExeFrameDiff(Params,ArgStrings),
+      "p"  : lambda: cmdExePrintAMB(Params,ArgStrings),
       "nc" : lambda: cmdExeNotACommand(),
         }
   Operations.get(CmdString,lambda: cmdExeNotACommand())()
