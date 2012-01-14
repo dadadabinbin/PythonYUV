@@ -1,53 +1,17 @@
 #!/usr/bin/python
 # vim:fdm=marker
+#### import {{{
 import os
 import sys
 import struct
+#}}}
 
-
-def getMB(MBLine,stride,offset, numofline, numofcolumn):#{{{1
+### getMB, Old function, shouldn't be used {{{1
+def getMB(MBLine,stride,offset, numofline, numofcolumn):
   curMB = []
   for i in range(0,numofline):
     curMB.append(MBLine[i*stride + offset :i*stride + offset + numofcolumn])
   return curMB
-
-def printMB(MbData):#{{{1
-  MB                = MbData["MbData"]
-  iNumOfLinesInMB   = MbData["NumOfLinesInMB"]
-  iNumOfColumnsInMB = MbData["NumOfColumnsInMB"]
-
-  for i in range(0,iNumOfLinesInMB):
-    if not i%4:
-      print"---------------------------------------------------------------------------------------------------------"
-    for j in range(0,iNumOfColumnsInMB):
-      if not j%4:
-        print "|",
-      int1, = struct.unpack("B",MB[i][j])
-      print "%-5d"% int1,
-    print "|\n"
-
-  print"---------------------------------------------------------------------------------------------------------"
-
-
-def printDiff(MbData1,MbData2):#{{{1
-  MB1               = MbData1["MbData"]
-  MB2               = MbData2["MbData"]
-  iNumOfLinesInMB   = MbData1["NumOfLinesInMB"]
-  iNumOfColumnsInMB = MbData1["NumOfColumnsInMB"]
-  for i in range(0,iNumOfLinesInMB):
-    if not i%4:
-      print"---------------------------------------------------------------------------------------------------------"
-    for j in range(0,iNumOfColumnsInMB):
-      if not j%4:
-        print "|",
-      int1, = struct.unpack("B",MB1[i][j])
-      int2, = struct.unpack("B",MB2[i][j])
-      diff = int1 - int2
-      print "%-5d"% diff,
-    print "|\n"
-
-  print"---------------------------------------------------------------------------------------------------------"
-
 
 def readOneFrame(Params, FrameNum, FileNum):#{{{1
 
@@ -91,6 +55,42 @@ def getOneMBFromFrame(Params, MbX, MbY, FrameData):#{{{1
   MbData["NumOfLinesInMB"] = iNumOfLinesInMB
   MbData["NumOfColumnsInMB"] = iNumOfColumnsInMB
   return MbData
+
+def printMB(MbData):#{{{1
+  MB                = MbData["MbData"]
+  iNumOfLinesInMB   = MbData["NumOfLinesInMB"]
+  iNumOfColumnsInMB = MbData["NumOfColumnsInMB"]
+
+  for i in range(0,iNumOfLinesInMB):
+    if not i%4:
+      print"---------------------------------------------------------------------------------------------------------"
+    for j in range(0,iNumOfColumnsInMB):
+      if not j%4:
+        print "|",
+      int1, = struct.unpack("B",MB[i][j])
+      print "%-5d"% int1,
+    print "|\n"
+
+  print"---------------------------------------------------------------------------------------------------------"
+
+def printDiff(MbData1,MbData2):#{{{1
+  MB1               = MbData1["MbData"]
+  MB2               = MbData2["MbData"]
+  iNumOfLinesInMB   = MbData1["NumOfLinesInMB"]
+  iNumOfColumnsInMB = MbData1["NumOfColumnsInMB"]
+  for i in range(0,iNumOfLinesInMB):
+    if not i%4:
+      print"---------------------------------------------------------------------------------------------------------"
+    for j in range(0,iNumOfColumnsInMB):
+      if not j%4:
+        print "|",
+      int1, = struct.unpack("B",MB1[i][j])
+      int2, = struct.unpack("B",MB2[i][j])
+      diff = int1 - int2
+      print "%-5d"% diff,
+    print "|\n"
+
+  print"---------------------------------------------------------------------------------------------------------"
 
 
 def printAllMBs(Params,WhichFile):#{{{1
