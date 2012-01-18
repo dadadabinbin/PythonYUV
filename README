@@ -18,13 +18,17 @@ It run in a interactive mode. First it asks for a command line, and then parse a
 Avalable commands:
 
   "h"  :  There's not and help now
-  "fd" :  Find the first different MB between the 2 YUV
+  "fd [FrameNum]"
+       :  Find the first different MB between the 2 YUV
+       :  If  FrameNum is given, the specified frame is checked
+       :  Else All Frame are checked from the first to the last
   "q"  :  Quit the dead loop of asking for command and execute
-  "nd <FrameNum>"
-       :  Find the first different MB in specified frame, a FrameNum should follow the "nd" command
   "p <WhichFile> <FrameNum> <MbX> <MbY>"
        :  print a particular MB of a particular file.
   "nc" :  Stands for "no command"
+
+  "sf <WhichFile> FrameNum"
+       :  use PIL Image to show a Frame, YCbCr image was used and U & V components were upsampled.
 
 
 ### Future plan {{{1

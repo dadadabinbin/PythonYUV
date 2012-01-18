@@ -4,6 +4,7 @@
 import os
 import sys
 import struct
+from PIL import Image
 #}}}
 
 ### getMB, Old function, shouldn't be used {{{1
@@ -13,19 +14,37 @@ def getMB(MBLine,stride,offset, numofline, numofcolumn):
     curMB.append(MBLine[i*stride + offset :i*stride + offset + numofcolumn])
   return curMB
 
+def Data2Img(Params,FrameData): #{{{1
+  Width     = Params["frame_width"]
+  Height    = Params["frame_height"]
+
+  imY = Image.fromstring("L", (Width, Height)    , FrameData["Y"])
+  imU = Image.fromstring("L", (Width/2, Height/2), FrameData["U"])
+  imV = Image.fromstring("L", (Width/2, Height/2), FrameData["V"])
+
+  imU = imU.resize((Width, Height))
+  imV = imV.resize((Width, Height))
+  #imY = imY.resize((Width/2, Height/2))
+
+  im  = Image.merge("YCbCr",(imY,imU,imV))
+  return im
+
 def readOneFrame(Params, FrameNum, FileNum):#{{{1
 
   BlockSize_Y = Params["frame_height"] * Params["frame_width"]
   BlockSize_UV = Params["frame_height"] * Params["frame_width"] / 2
   BlockSize_Total = BlockSize_Y + BlockSize_UV
 
+  FrameData = {}
   if FileNum == 1:
     YUVFile = open(Params["filename1"],"r")
   else:
     YUVFile = open(Params["filename2"],"r")
   YUVFile.seek( BlockSize_Total * FrameNum, os.SEEK_SET)
-  FrameDataY = YUVFile.read( Params["frame_height"] * Params["frame_width"] )
-  return FrameDataY
+  FrameData["Y"] = YUVFile.read( Params["frame_height"] * Params["frame_width"] )
+  FrameData["U"] = YUVFile.read( Params["frame_height"] * Params["frame_width"] / 4)
+  FrameData["V"] = YUVFile.read( Params["frame_height"] * Params["frame_width"] / 4)
+  return FrameData
 
 def getOneMBFromFrame(Params, MbX, MbY, FrameData):#{{{1
   TopLeftX = MbX * 16
@@ -96,6 +115,7 @@ def printDiff(MbData1,MbData2):#{{{1
 def printAllMBs(Params,WhichFile):#{{{1
   for frame_n in range(0,Params["num_of_frames"]):
     FrameData = readOneFrame(Params, frame_n, WhichFile)
+    FrameData = FrameData["Y"]
     for mb_y in range(0,Params["height_in_mb"]): 
       for mb_x in range(0, Params["width_in_mb"]):
         MbData = getOneMBFromFrame(Params, mb_x, mb_y, FrameData)
@@ -105,6 +125,7 @@ def printAllMBs(Params,WhichFile):#{{{1
 
 def printOneMBOfASeq(Params, WhichFile, FrameNum, MbX, MbY): #{{{1
   FrameData = readOneFrame(Params, FrameNum, WhichFile)
+  FrameData = FrameData["Y"]
   MbData = getOneMBFromFrame(Params, MbX, MbY, FrameData)
   printMB(MbData)
 
@@ -112,6 +133,8 @@ def findFirstDiff(Params):#{{{1
   for frame_n in range(0,Params["num_of_frames"]):
     FrameData1 = readOneFrame(Params, frame_n, 1)
     FrameData2 = readOneFrame(Params, frame_n, 2)
+    FrameData1 = FrameData1["Y"]
+    FrameData2 = FrameData2["Y"]
     for mb_y in range(0,Params["height_in_mb"]): 
       for mb_x in range(0, Params["width_in_mb"]):
         MbData1 = getOneMBFromFrame(Params, mb_x, mb_y, FrameData1)
@@ -127,6 +150,8 @@ def findFirstDiff(Params):#{{{1
 def findFrameDiff(Params, FrameNum):#{{{1
   FrameData1 = readOneFrame(Params, FrameNum, 1)
   FrameData2 = readOneFrame(Params, FrameNum, 2)
+  FrameData1 = FrameData1["Y"]
+  FrameData2 = FrameData2["Y"]
   for mb_y in range(0,Params["height_in_mb"]):
     for mb_x in range(0, Params["width_in_mb"]):
       MbData1 = getOneMBFromFrame(Params, mb_x, mb_y, FrameData1)
@@ -170,17 +195,27 @@ def parseCfgFile():#{{{1
   Params["height_in_mb"] = height_in_mb
   return Params
 
-def cmdExeFirstDiff(Params,ArgStrings):#{{{1
-  findFirstDiff(Params)
+def showOneFrame(Params, WhichFile, FrameNum):#{{{1
+  Width     = Params["frame_width"]
+  Height    = Params["frame_height"]
 
-def cmdExeFrameDiff(Params, ArgStrings):#{{{1
-  FrameNum = int(ArgStrings[0])
-  print FrameNum
-  findFrameDiff(Params, FrameNum)
+  FrameData = readOneFrame(Params, FrameNum, WhichFile)
 
+  im  = Data2Img(Params,FrameData)
+  im.show()
+
+def cmdExeFindDiff(Params,ArgStrings):#{{{1
+  if len(ArgStrings) == 0:
+    findFirstDiff(Params)
+  else:
+    FrameNum = int(ArgStrings[0])
+    findFrameDiff(Params, FrameNum)
 
 def cmdExeHelp():#{{{1
   print "Sorry, no help :-P"
+
+def cmdExePrintAllMB(Params,ArgStrings):#{{{1
+  printAllMBs(Params, int(ArgStrings[0]))
 
 def cmdExePrintAMB(Params,ArgStrings):#{{{1
   if len(ArgStrings) >= 4:
@@ -195,14 +230,24 @@ def cmdExeQuit():#{{{1
 def cmdExeNotACommand():#{{{1
   print "what the hell do you want to do ?"
 
+def cmdExeSeeAFrame(Params,ArgStrings):#{{{1
+  if not len(ArgStrings) >= 2:
+    print "Too few arguments!\n\tUsage: sf <WhichFile> <FrameNum>"
+    return
+
+  WhichFile = int(ArgStrings[0])
+  FrameNum  = int(ArgStrings[1])
+  showOneFrame(Params, WhichFile, FrameNum)
+
 def CommandExecution(Params, CmdString, ArgStrings):#{{{1
   Operations = {
       "h"  : lambda: cmdExeHelp(),
-      "fd" : lambda: cmdExeFirstDiff(Params,ArgStrings),
-      "q"  : lambda: cmdExeQuit(),
-      "nd" : lambda: cmdExeFrameDiff(Params,ArgStrings),
+      "fd" : lambda: cmdExeFindDiff(Params,ArgStrings),
       "p"  : lambda: cmdExePrintAMB(Params,ArgStrings),
+      "pa" : lambda: cmdExePrintAllMB(Params,ArgStrings),
+      "sf" : lambda: cmdExeSeeAFrame(Params,ArgStrings),
       "nc" : lambda: cmdExeNotACommand(),
+      "q"  : lambda: cmdExeQuit(),
         }
   Operations.get(CmdString,lambda: cmdExeNotACommand())()
 #Global {{{1
