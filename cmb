@@ -38,8 +38,11 @@ def readOneFrame(Params, FrameNum, FileNum):#{{{1
   FrameData = {}
   if FileNum == 1:
     YUVFile = open(Params["filename1"],"r")
-  else:
+  elif FileNum == 2:
     YUVFile = open(Params["filename2"],"r")
+  else:
+    raise RuntimeError('You must specify to use file 1 or 2!!')
+    return None
   YUVFile.seek( BlockSize_Total * FrameNum, os.SEEK_SET)
   FrameData["Y"] = YUVFile.read( Params["frame_height"] * Params["frame_width"] )
   FrameData["U"] = YUVFile.read( Params["frame_height"] * Params["frame_width"] / 4)
@@ -47,10 +50,18 @@ def readOneFrame(Params, FrameNum, FileNum):#{{{1
   return FrameData
 
 def getOneMBFromFrame(Params, MbX, MbY, FrameData):#{{{1
+  FrameDataY = FrameData["Y"]
+  FrameDataU = FrameData["U"]
+  FrameDataV = FrameData["V"]
+
   TopLeftX = MbX * 16
   TopLeftY = MbY * 16
 
+  TopLeftX_UV = TopLeftX/2
+  TopLeftY_UV = TopLeftY/2
+
   stride = Params["frame_width"]
+  stride_UV = stride / 2
 
   if MbX >= Params["width_in_mb"] or MbY >= Params["height_in_mb"]:
     return "fail"
@@ -59,15 +70,23 @@ def getOneMBFromFrame(Params, MbX, MbY, FrameData):#{{{1
     iNumOfLinesInMB = Params["frame_height"] - TopLeftY
   else:
     iNumOfLinesInMB = 16 
+  iNumOfLinesInMB_UV = iNumOfLinesInMB / 2
 
   if TopLeftX+16 >= Params["frame_width"]:
     iNumOfColumnsInMB = Params["frame_width"] - TopLeftX
   else:
     iNumOfColumnsInMB = 16 
+  iNumOfColumnsInMB_UV = iNumOfColumnsInMB / 2
 
-  curMB = []
+  curMB = {}
+  curMB["Y"] = []
+  curMB["U"] = []
+  curMB["V"] = []
   for i in range(0,iNumOfLinesInMB):
-    curMB.append(FrameData[ ( TopLeftY + i ) * stride + TopLeftX :( TopLeftY + i )*stride + TopLeftX + iNumOfColumnsInMB])
+    curMB["Y"].append(FrameDataY[ ( TopLeftY + i ) * stride + TopLeftX :( TopLeftY + i )*stride + TopLeftX + iNumOfColumnsInMB])
+  for i in range(0,iNumOfLinesInMB_UV):
+    curMB["U"].append(FrameDataU[ ( TopLeftY_UV + i ) * stride_UV + TopLeftX_UV :( TopLeftY_UV + i )*stride_UV + TopLeftX_UV + iNumOfColumnsInMB_UV])
+    curMB["V"].append(FrameDataV[ ( TopLeftY_UV + i ) * stride_UV + TopLeftX_UV :( TopLeftY_UV + i )*stride_UV + TopLeftX_UV + iNumOfColumnsInMB_UV])
   
   MbData = {}
   MbData["MbData"] = curMB
@@ -76,7 +95,7 @@ def getOneMBFromFrame(Params, MbX, MbY, FrameData):#{{{1
   return MbData
 
 def printMB(MbData):#{{{1
-  MB                = MbData["MbData"]
+  MB                = MbData["MbData"]["Y"]
   iNumOfLinesInMB   = MbData["NumOfLinesInMB"]
   iNumOfColumnsInMB = MbData["NumOfColumnsInMB"]
 
@@ -93,8 +112,8 @@ def printMB(MbData):#{{{1
   print"---------------------------------------------------------------------------------------------------------"
 
 def printDiff(MbData1,MbData2):#{{{1
-  MB1               = MbData1["MbData"]
-  MB2               = MbData2["MbData"]
+  MB1               = MbData1["MbData"]["Y"]
+  MB2               = MbData2["MbData"]["Y"]
   iNumOfLinesInMB   = MbData1["NumOfLinesInMB"]
   iNumOfColumnsInMB = MbData1["NumOfColumnsInMB"]
   for i in range(0,iNumOfLinesInMB):
@@ -115,7 +134,7 @@ def printDiff(MbData1,MbData2):#{{{1
 def printAllMBs(Params,WhichFile):#{{{1
   for frame_n in range(0,Params["num_of_frames"]):
     FrameData = readOneFrame(Params, frame_n, WhichFile)
-    FrameData = FrameData["Y"]
+    #FrameData = FrameData["Y"]
     for mb_y in range(0,Params["height_in_mb"]): 
       for mb_x in range(0, Params["width_in_mb"]):
         MbData = getOneMBFromFrame(Params, mb_x, mb_y, FrameData)
@@ -125,7 +144,7 @@ def printAllMBs(Params,WhichFile):#{{{1
 
 def printOneMBOfASeq(Params, WhichFile, FrameNum, MbX, MbY): #{{{1
   FrameData = readOneFrame(Params, FrameNum, WhichFile)
-  FrameData = FrameData["Y"]
+  #FrameData = FrameData["Y"]
   MbData = getOneMBFromFrame(Params, MbX, MbY, FrameData)
   printMB(MbData)
 
@@ -133,14 +152,14 @@ def findFirstDiff(Params):#{{{1
   for frame_n in range(0,Params["num_of_frames"]):
     FrameData1 = readOneFrame(Params, frame_n, 1)
     FrameData2 = readOneFrame(Params, frame_n, 2)
-    FrameData1 = FrameData1["Y"]
-    FrameData2 = FrameData2["Y"]
+    #FrameData1 = FrameData1["Y"]
+    #FrameData2 = FrameData2["Y"]
     for mb_y in range(0,Params["height_in_mb"]): 
       for mb_x in range(0, Params["width_in_mb"]):
         MbData1 = getOneMBFromFrame(Params, mb_x, mb_y, FrameData1)
         MbData2 = getOneMBFromFrame(Params, mb_x, mb_y, FrameData2)
 
-        if not MbData1["MbData"] == MbData2["MbData"]:
+        if not MbData1["MbData"]["Y"] == MbData2["MbData"]["Y"]:
           print "FrameNum: %d"%frame_n
           print "MB: (%d,%d)"%(mb_x,mb_y)
           printDiff(MbData1,MbData2)
@@ -150,8 +169,8 @@ def findFirstDiff(Params):#{{{1
 def findFrameDiff(Params, FrameNum):#{{{1
   FrameData1 = readOneFrame(Params, FrameNum, 1)
   FrameData2 = readOneFrame(Params, FrameNum, 2)
-  FrameData1 = FrameData1["Y"]
-  FrameData2 = FrameData2["Y"]
+  #FrameData1 = FrameData1["Y"]
+  #FrameData2 = FrameData2["Y"]
   for mb_y in range(0,Params["height_in_mb"]):
     for mb_x in range(0, Params["width_in_mb"]):
       MbData1 = getOneMBFromFrame(Params, mb_x, mb_y, FrameData1)
@@ -219,7 +238,10 @@ def cmdExePrintAllMB(Params,ArgStrings):#{{{1
 
 def cmdExePrintAMB(Params,ArgStrings):#{{{1
   if len(ArgStrings) >= 4:
-    printOneMBOfASeq(Params, int(ArgStrings[0]), int(ArgStrings[1]), int(ArgStrings[2]), int(ArgStrings[3]))
+    try:
+      printOneMBOfASeq(Params, int(ArgStrings[0]), int(ArgStrings[1]), int(ArgStrings[2]), int(ArgStrings[3]))
+    except Exception, err:
+      sys.stderr.write('ERROR: %s\n' % str(err))
   else:
     print "Too few arguments"
 
