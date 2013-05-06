@@ -1,0 +1,172 @@
+#!/usr/bin/python
+# vim:fdm=marker
+#### import {{{
+import os
+import sys
+import struct
+from PIL import Image
+#}}}
+
+### getMB, Old function, shouldn't be used {{{1
+def getMB(MBLine,stride,offset, numofline, numofcolumn):
+  curMB = []
+  for i in range(0,numofline):
+    curMB.append(MBLine[i*stride + offset :i*stride + offset + numofcolumn])
+  return curMB
+
+def readOneFrame(YUVFile):#{{{1
+
+  BlockSize_Y = Params["InHeight"] * Params["InWidth"]
+  BlockSize_UV = Params["InHeight"] * Params["InWidth"] / 2
+  BlockSize_Total = BlockSize_Y + BlockSize_UV
+
+  FrameData = {}
+
+  #YUVFile.seek( BlockSize_Total * FrameNum, os.SEEK_SET)
+  FrameData["Y"] = YUVFile.read( Params["InHeight"] * Params["InWidth"] )
+  FrameData["U"] = YUVFile.read( Params["InHeight"] * Params["InWidth"] / 4)
+  FrameData["V"] = YUVFile.read( Params["InHeight"] * Params["InWidth"] / 4)
+  return FrameData
+
+#{{{    *Function*  writeOneFrame
+def writeOneFrame(YUVFile, FrameData):
+  #BlockSize_Y = Params["OutHeight"] * Params["OutWidth"]
+  #BlockSize_UV = Params["OutHeight"] * Params["OutWidth"] / 2
+  #BlockSize_Total = BlockSize_Y + BlockSize_UV
+
+  #YUVFile.seek( BlockSize_Total * FrameNum, os.SEEK_SET)
+  YUVFile.write( buffer(FrameData["Y"]) )
+  YUVFile.write( buffer(FrameData["U"]) )
+  YUVFile.write( buffer(FrameData["V"]) )
+#}}}
+def getOneWindowFromFrame(TopLeftPos, WindowSize, FrameData):#{{{1
+  FrameDataY = FrameData["Y"]
+  FrameDataU = FrameData["U"]
+  FrameDataV = FrameData["V"]
+
+  TopLeftX    = TopLeftPos[0]
+  TopLeftY    = TopLeftPos[1]
+  TopLeftX_UV = TopLeftX/2
+  TopLeftY_UV = TopLeftY/2
+
+  stride = Params["InWidth"]
+  stride_UV = stride / 2
+
+  #if MbX >= Params["width_in_mb"] or MbY >= Params["height_in_mb"]:
+  #  return "fail"
+
+  iNumOfLinesInWindow = WindowSize[1] 
+  iNumOfLinesInWindow_UV = iNumOfLinesInWindow / 2
+
+  iNumOfColumnsInWindow = WindowSize[0] 
+  iNumOfColumnsInWindow_UV = iNumOfColumnsInWindow / 2
+
+  curWindow = {}
+  curWindow["Y"] = ''
+  curWindow["U"] = ''
+  curWindow["V"] = ''
+  for i in range(0,iNumOfLinesInWindow):
+    curWindow["Y"] += FrameDataY[ ( TopLeftY + i ) * stride + TopLeftX :( TopLeftY + i )*stride + TopLeftX + iNumOfColumnsInWindow]
+  for i in range(0,iNumOfLinesInWindow_UV):
+    curWindow["U"] += FrameDataU[ ( TopLeftY_UV + i ) * stride_UV + TopLeftX_UV :( TopLeftY_UV + i )*stride_UV + TopLeftX_UV + iNumOfColumnsInWindow_UV]
+    curWindow["V"] += FrameDataV[ ( TopLeftY_UV + i ) * stride_UV + TopLeftX_UV :( TopLeftY_UV + i )*stride_UV + TopLeftX_UV + iNumOfColumnsInWindow_UV]
+  
+  MbData = {}
+  MbData["WindowData"] = curWindow
+  MbData["NumOfLinesInWindow"] = iNumOfLinesInWindow
+  MbData["NumOfColumnsInWindow"] = iNumOfColumnsInWindow
+  return MbData
+
+
+def parseCfgFile():#{{{1->    *Function*     Parse cut.conf
+    global Params
+
+    cfgFile = open("cut.conf","r")
+
+    # Now conf file contain 2 Secions
+    #   1,  Size of Region to be cut
+    #   2,  TopLeft Point of Region
+    Params_data = {"File_Specs":[],"Pos_per_Frame":[]}
+
+    # obtain data of each Section
+    cfgSection = ""
+    for line in cfgFile:
+        if line[0:2] == r'##':
+            cfgSection = line.split()[1]
+        if line[0] != "#":
+            if cfgSection:
+                Params_data[cfgSection].append(line.rstrip())
+
+    # Parse Size_of_Region
+    for line in Params_data["File_Specs"]:
+        record = line.rstrip().split()
+        if record[0] in conf_keywords.keys():
+            Params[record[0]] = conf_keywords[record[0]](record[1])
+        else:
+            print "Illegal key word!" + record[0]
+
+    # Parse Pos_per_Frame
+    Params["Pos_per_Frame"] = {}
+    for line in Params_data["Pos_per_Frame"]:
+        record = line.rstrip().split()
+        if '-' in record[0]:
+            first_frame_num = int(record[0].split('-')[0])
+            last_frame_num  = int(record[0].split('-')[1])
+        else:
+            first_frame_num = last_frame_num = int(record[0])
+
+        Pos_x = int(record[1])
+        Pos_y = int(record[2])
+        for i in range(first_frame_num, last_frame_num+1):
+            Params["Pos_per_Frame"][i] = [ Pos_x, Pos_y ]
+
+#}}}1
+def parseCmdParam():#{{{->   *Function*     parseCmdParam
+    global Params
+    if len(sys.argv) == 3:
+        Params['file_in'] = sys.argv[1]
+        Params['file_out'] = sys.argv[2]
+    else:
+        print "Wrong in/out file specification"
+        sys.exit(0)
+#}}}
+#{{{    *Function*  cutOneFrame
+def cutOneFrame(FrameData, CutPos):
+    in_width   = Params["InWidth"]
+    in_height  = Params["InHeight"]
+    out_width  = Params["OutWidth"]
+    out_height = Params["OutHeight"]
+    tl_x = CutPos[0]
+    tl_y = CutPos[1]
+
+    cut_out_data = getOneWindowFromFrame( [tl_x,tl_y], [out_width,out_height], FrameData )
+    #print cut_out_data["WindowData"]
+    return cut_out_data["WindowData"]
+#}}}
+def ProcessSeq():#{{{->     *Function*     ProcessSeq
+    filein  = open(Params["InFile"],'rb')
+    fileout = open(Params["OutFile"],'wb')
+    
+    for i in range(0,Params["Frames"]):
+        frame_data = readOneFrame(filein)
+        #print Params["Pos_per_Frame"][i]
+        out_frame_data = cutOneFrame(frame_data,Params["Pos_per_Frame"][i])
+        writeOneFrame(fileout, out_frame_data)
+    filein.close()
+    fileout.close()
+#}}}
+#{{{Global
+conf_keywords = {
+                    "InWidth"   :int,
+                    "InHeight"  :int,
+                    "OutWidth"  :int,
+                    "OutHeight" :int,
+                    "InFile"    :str,
+                    "OutFile"   :str,
+                    "Frames"    :int,
+                }
+Params = {}
+#parseCmdParam()
+parseCfgFile()
+ProcessSeq()
+#print Params
