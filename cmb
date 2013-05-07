@@ -111,25 +111,104 @@ def printMB(MbData):#{{{1
 
   print"---------------------------------------------------------------------------------------------------------"
 
-def printDiff(MbData1,MbData2):#{{{1
-  MB1               = MbData1["MbData"]["Y"]
-  MB2               = MbData2["MbData"]["Y"]
-  iNumOfLinesInMB   = MbData1["NumOfLinesInMB"]
-  iNumOfColumnsInMB = MbData1["NumOfColumnsInMB"]
+  MB                = MbData["MbData"]["U"]
+  iNumOfLinesInMB   = MbData["NumOfLinesInMB"] / 2
+  iNumOfColumnsInMB = MbData["NumOfColumnsInMB"] / 2
+
   for i in range(0,iNumOfLinesInMB):
     if not i%4:
-      print"---------------------------------------------------------------------------------------------------------"
+      print "-"*iNumOfLinesInMB*7
     for j in range(0,iNumOfColumnsInMB):
       if not j%4:
         print "|",
-      int1, = struct.unpack("B",MB1[i][j])
-      int2, = struct.unpack("B",MB2[i][j])
-      diff = int1 - int2
-      print "%-5d"% diff,
+      int1, = struct.unpack("B",MB[i][j])
+      print "%-5d"% int1,
     print "|\n"
 
-  print"---------------------------------------------------------------------------------------------------------"
+  print "-"*iNumOfLinesInMB*7
 
+  MB                = MbData["MbData"]["V"]
+  iNumOfLinesInMB   = MbData["NumOfLinesInMB"] / 2
+  iNumOfColumnsInMB = MbData["NumOfColumnsInMB"] / 2
+
+  for i in range(0,iNumOfLinesInMB):
+    if not i%4:
+      print "-"*iNumOfLinesInMB*7
+    for j in range(0,iNumOfColumnsInMB):
+      if not j%4:
+        print "|",
+      int1, = struct.unpack("B",MB[i][j])
+      print "%-5d"% int1,
+    print "|\n"
+
+  print "-"*iNumOfLinesInMB*7
+
+def printDiff(MbData1,MbData2):#{{{1
+
+  if not MbData1["MbData"]["Y"] == MbData2["MbData"]["Y"]:
+    MB1               = MbData1["MbData"]["Y"]
+    MB2               = MbData2["MbData"]["Y"]
+    iNumOfLinesInMB   = MbData1["NumOfLinesInMB"]
+    iNumOfColumnsInMB = MbData1["NumOfColumnsInMB"]
+    
+    print "Y"
+
+    for i in range(0,iNumOfLinesInMB):
+      if not i%4:
+        print"---------------------------------------------------------------------------------------------------------"
+      for j in range(0,iNumOfColumnsInMB):
+        if not j%4:
+          print "|",
+        int1, = struct.unpack("B",MB1[i][j])
+        int2, = struct.unpack("B",MB2[i][j])
+        diff = int1 - int2
+        print "%-5d"% diff,
+      print "|\n"
+
+    print"---------------------------------------------------------------------------------------------------------"
+  if not MbData1["MbData"]["U"] == MbData2["MbData"]["U"]:
+    MB1               = MbData1["MbData"]["U"]
+    MB2               = MbData2["MbData"]["U"]
+    iNumOfLinesInMB   = MbData1["NumOfLinesInMB"] / 2
+    iNumOfColumnsInMB = MbData1["NumOfColumnsInMB"] / 2
+
+    print "U"
+
+    for i in range(0,iNumOfLinesInMB):
+      if not i%4:
+        print "-----------------------------------------------------"
+      for j in range(0,iNumOfColumnsInMB):
+        if not j%4:
+          print "|",
+        int1, = struct.unpack("B",MB1[i][j])
+        int2, = struct.unpack("B",MB2[i][j])
+        diff = int1 - int2
+        print "%-5d"% diff,
+      print "|\n"
+
+    print "-----------------------------------------------------"
+
+  if not MbData1["MbData"]["V"] == MbData2["MbData"]["V"]:
+    MB1               = MbData1["MbData"]["V"]
+    MB2               = MbData2["MbData"]["V"]
+    iNumOfLinesInMB   = MbData1["NumOfLinesInMB"] / 2
+    iNumOfColumnsInMB = MbData1["NumOfColumnsInMB"] / 2
+
+    print "V"
+
+    for i in range(0,iNumOfLinesInMB):
+      if not i%4:
+        print "-----------------------------------------------------"
+      for j in range(0,iNumOfColumnsInMB):
+        if not j%4:
+          print "|",
+        int1, = struct.unpack("B",MB1[i][j])
+        int2, = struct.unpack("B",MB2[i][j])
+        diff = int1 - int2
+        print "%-5d"% diff,
+      print "|\n"
+
+    print "-----------------------------------------------------"
 
 def printAllMBs(Params,WhichFile):#{{{1
   for frame_n in range(0,Params["num_of_frames"]):
@@ -159,7 +238,7 @@ def findFirstDiff(Params):#{{{1
         MbData1 = getOneMBFromFrame(Params, mb_x, mb_y, FrameData1)
         MbData2 = getOneMBFromFrame(Params, mb_x, mb_y, FrameData2)
 
-        if not MbData1["MbData"]["Y"] == MbData2["MbData"]["Y"]:
+        if not MbData1["MbData"] == MbData2["MbData"]:
           print "FrameNum: %d"%frame_n
           print "MB: (%d,%d)"%(mb_x,mb_y)
           printDiff(MbData1,MbData2)
