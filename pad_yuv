@@ -58,10 +58,12 @@ def padOneWindowFromFrame(Origsize, TopLeftSize, WholeSize, FrameData):#{{{1
   curWindow["Y"] = top_line * TopLeftY
   #print len(curWindow["Y"])
 
+  line_left  =  "\0" * TopLeftX
+  line_right =  "\0" * BottomRightX
   for i in range(0, Origsize[1]):
-      curWindow["Y"] += "\0" * TopLeftX
+      curWindow["Y"] += line_left
       curWindow["Y"] += FrameDataY[ (  i ) * stride : ( i ) * stride + stride ]
-      curWindow["Y"] += "\0" * BottomRightX
+      curWindow["Y"] += line_right
   #print len(curWindow["Y"])
   curWindow["Y"] += top_line * BottomRightY
   #print len(curWindow["Y"])
@@ -71,14 +73,16 @@ def padOneWindowFromFrame(Origsize, TopLeftSize, WholeSize, FrameData):#{{{1
   curWindow["U"] = top_line_uv * TopLeftY_UV
   curWindow["V"] = top_line_uv * TopLeftY_UV
 
+  line_left  = "\0" * TopLeftX_UV
+  line_right = "\0" * BottomRightX_UV
   for i in range(0, Origsize[1]/2):
-      curWindow["U"] += "\0" * TopLeftX_UV
+      curWindow["U"] += line_left
       curWindow["U"] += FrameDataU[ (  i ) * stride_UV : ( i ) * stride_UV + stride_UV ]
-      curWindow["U"] += "\0" * BottomRightX_UV
+      curWindow["U"] += line_right
 
-      curWindow["V"] += "\0" * TopLeftX_UV
+      curWindow["V"] += line_left
       curWindow["V"] += FrameDataV[ (  i ) * stride_UV : ( i ) * stride_UV + stride_UV ]
-      curWindow["V"] += "\0" * BottomRightX_UV
+      curWindow["V"] += line_right
   curWindow["U"] += top_line_uv * BottomRightY_UV
   curWindow["V"] += top_line_uv * BottomRightY_UV
 
@@ -181,8 +185,9 @@ def ProcessSeq():#{{{->     *Function*     ProcessSeq
     filein  = open(Params["InFile"],'rb')
     fileout = open(Params["OutFile"],'wb')
     
-    #for i in range(0,Params["Frames"]):
-    for i in range(0,1):
+    for i in range(0,Params["Frames"]):
+    #for i in range(0,1):
+        print i
         frame_data = readOneFrame(filein)
         #print Params["Pos_per_Frame"][i]
         out_frame_data = padOneFrame(frame_data,Params["Pos_per_Frame"][i])
