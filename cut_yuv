@@ -4,6 +4,7 @@
 import os
 import sys
 import struct
+import argparse
 from PIL import Image
 #}}}
 
@@ -81,7 +82,7 @@ def getOneWindowFromFrame(TopLeftPos, WindowSize, FrameData):#{{{1
 def parseCfgFile():#{{{1->    *Function*     Parse cut.conf
     global Params
 
-    cfgFile = open("cut.conf","r")
+    cfgFile = open(Params["CfgFile"],"r")
 
     # Now conf file contain 2 Secions
     #   1,  Size of Region to be cut
@@ -165,7 +166,10 @@ conf_keywords = {
                     "OutFile"   :str,
                     "Frames"    :int,
                 }
-Params = {}
+parser = argparse.ArgumentParser(description  = 'CuuuuuuT YUV~')
+parser.add_argument('-c', dest='cfgfile',  default='cut.conf', help='cfg file')
+args = parser.parse_args()
+Params = {"CfgFile":args.cfgfile}
 #parseCmdParam()
 parseCfgFile()
 ProcessSeq()
